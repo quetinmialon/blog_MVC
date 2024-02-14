@@ -26,5 +26,6 @@ class Twig extends Environment
 
         // Et une fonction pour générer facilement des champs cachés de méthodes HTTP
         $this->addFunction(new TwigFunction('method', 'method'));
+        $this->addFunction(new TwigFunction('csrf_field','csrf_field'));
     }
 }

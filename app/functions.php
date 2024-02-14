@@ -74,3 +74,12 @@ if (! function_exists('isGuest')) {
         return ! App::getInstance()->make('session')->has('user_id');
     }
 }
+if (! function_exists('csrf_field')) {
+    /**
+     * Permet d'insérer facilement un champ caché avec le token CSRF
+     */
+    function csrf_field(): string
+    {
+        return '<input type="hidden" name="_token" value="' . App::getInstance()->make('session')->get('_token') . '">';
+    }
+}

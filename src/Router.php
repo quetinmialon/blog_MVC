@@ -37,7 +37,7 @@ class Router
         if (! $route) {
             throw new HttpException();
         }
-
+        $this->middlewares($route);
         // Sinon, on exécute l'action correspondant à notre route
         $response = $this->makeResponse($route);
 
@@ -82,6 +82,7 @@ class Router
         return false;
     }
 
+
     /**
      * Permet d'instancier le contrôleur qui correspond à la route qui a matchée
      */
@@ -101,5 +102,16 @@ class Router
         $response = $controller->$method(...$route->getParams());
 
         return $response;
+    }
+    protected function middlewares(Route $route):void{
+        foreach($route->getMiddlewares()as $middleware){
+            (new $middleware())->handle(
+                $this->request,
+                $this->response,
+                $this->session,
+                
+            );
+        }
+
     }
 }

@@ -1,80 +1,105 @@
-# Quelques ajouts qui font plaisir
+# Blog : Début du blog
 
-## Les variables d'environnement
+Il est temps de voir en action notre framework en créant un petit blog.
 
-En environnement de dev local ou de prod, les identifiants pour se connecter à notre SGBD ne seront pas les mêmes ! Et ça sera le cas d'un paquet de valeurs dans nos applications qui varieront d'un environnement à l'autre.
+Ce blog sera une version allégée de celui que nous allons réaliser ensuite avec Laravel 😍
 
-On va donc vouloir créer des variables d'environnement afin de les changer de valeur aisément en fonction de celui-ci.
+Pour aujourd'hui, on se contente de mettre en place le projet et de créer nos différentes actions pour afficher toutes les pages du site.
 
-Tout ça est rendu facilement possible avec la dépendance `vlucas/phpdotenv` que j'ai installé sur notre framework !
+## Mise en place
 
-Vos variables d'environnement se trouveront dans un fichier `.env` à la racine de votre projet (au format `CLE=VALEUR`).
+On va commencer par créer notre projet à partir du [repo de la correction du framework](https://github.com/DWWM-AL/CCP2-jour20-framework-mvc-correction).
 
-Celles-ci seront ensuite facilement récupérable via la superglobale PHP `$_ENV`.
+Comme d'habitude, utilisez le bouton "Use this template" pour créér le repo de votre blog !
 
-Ce fichier ne devra PAS être versioné puisqu'il contiendra souvent des données sensibles (identifiants, clés d'API etc...).
+Clonez-le dans votre dossier `/www` et pensez bien à faire un `composer i` pour installer les dépendances.
 
-Je l'ai donc ajouté à notre fichier `.gitignore` et j'ai créé un fichier `.env.example` qui aura la même structure que le `.env` pour servir de modèle à chaque fois que quelqu'un fera un `git clone ...` du projet (mais ce fichier exemple n'aura pas les données sensibles).
+Pensez également à créer un fichier `.env` à partir du `.env.example` pour configurer votre projet.
 
-J'ai ensuite utilisé des variables d'environnement pour les informations de connexion au SGBD dans le service `eloquent` et pour le service `exception_handler` (on en parle dans la section suivante) qui permet d'ajouter un gestionnaire d'exceptions personnalisé qui ne doit être créé qu'en environnement de production (donc avec `APP_ENV=prod`).
+On va ensuite créer une BDD complète histoire d'être opérationnel rapidement !
 
-## Le gestionnaire d'exceptions
+Dirigez-vous donc sur phpMyAdmin, connectez-vous et cliquez sur l'onglet "Importer" pour utiliser le fichier `blog.sql` afin de créer la BDD `blog`. *Si une BDD avec ce nom existe déjà, pensez à la supprimer en amont*.
 
-Le gestionnaire d'exceptions se trouve [juste ici](./src/ExceptionHandler.php).
+Dernière étape ! Je vous épargne la création des templates Twig histoire d'être focus sur le back. Vous allez donc pouvoir copier le contenu du dossier `views` de cet atelier dans le dossier `resources/views/` de votre projet de blog.
 
-Si jamais on est dans un environnement de production (donc un environnement où on souhaite afficher de belles pages d'erreurs à nos visiteurs et non des messages détaillés seulement utiles en développement), on va utiliser la fonction native de PHP `set_exception_handler()` qui permet d'indiquer la façon dont on souhaite gérer les erreurs qui n'ont pas été attrapées via un bloc `try ... catch`.
+Côté CSS et JS, copiez-coller les dossiers `css` et `js` à la racine du dossier `public` de votre projet.
 
-Je vous laisse lire les commentaires dans ce fichier pour en comprendre le fonctionnement.
+Si vous êtes du genre curieux (et je vous y encourage), vous pouvez allez regarder les templates pour tenter de bien en comprendre le fonctionnement ! En cas de besoin, la [doc Twig](https://twig.symfony.com/doc/3.x/templates.html) est à votre disposition.
 
-## Les sessions
+## Une page d'accueil
 
-On l'a vu il y a quelques semaines, les sessions permettent de palier l'aspect sans état du protocole HTTP. Elles pourront nous permettre notamment d'authentifier un utilisateur ou bien d'enregistrer temporairement les erreurs dans un formulaires.
+Pour la partie "Blog" (donc la page d'accueil et la page pour chaque article), on va créer un contrôleur `PostController` !
 
-La dépendance `symfony/http-foundation` permet de gérer les sessions via un objet plutôt que par les fonctions que nous avions découvert en cours (`session_start()` par exemple).
+Vous allez ensuite pouvoir créer la route pour la page d'accueil qui devra avoir comme action une méthode `index()` dans le `PostController`.
 
-J'ai donc créé un service `session` qui contient simplement une instance de la classe `Symfony\Component\HttpFoundation\Session\Session` de Symfony.
+Créez naturellement cette méthode `index()` qui doit retourner en réponse la vue générée à partir du template `index.html`.
 
-J'ai ensuite passé ce service `session` au service `router` qui l'a transmis au contrôleur instancié pour que celui-ci le stocke dans une propriété `$session`.
+Si vous regardez un peu le template `index.html`, vous allez voir que celui-ci s'attend à recevoir un "tableau" des posts à afficher.
 
-Nous aurons donc un accès simplifié à la session de notre visiteur depuis nos actions !
+Vous allez donc devoir créer un modèle `Post` pour pouvoir récupérer les données de votre table `posts`.
 
-Au passage, vu qu'on aura aussi régulièrement besoin d'accéder aux données de notre requête depuis les contrôleurs, j'ai aussi injecté le service `request` dans le constructeur de notre contrôleur et je l'ai stocké dans une propriété `$request`.
+Une fois que c'est fait, vous allez devoir l'utiliser pour récupérer l'ensemble de vos posts à l'aide d'Eloquent.
 
-Nos templates auront régulièrement besoin d'accéder à des données (notamment des variables de session) qu'on voudra se passer de transmettre à chaque fois via le tableau `$data` de la méthode `view()` prévu à cet effet.
+Comment récupérer vos posts avec Eloquent? [La doc est très bien faite](https://laravel.com/docs/10.x/eloquent#retrieving-models) 😁
 
-C'est pourquoi j'ai créé quelques fonctions dans `app/functions.php` dont les valeurs de retour vont être (notamment) utilisées par des variables auxquelles tous nos templates auront accès par défaut. Vous pouvez voir la création de ces variables dans le [service Twig](./src/Twig.php) (on a également une fonction `method()` qui peut servir à générer un champ caché dans les formulaires pour matcher avec les routes `delete`, `put` et `patch`).
+Passez bien l'ensemble des posts récupérés à votre template via le 2ème argument de la méthode `view()` avec une clé `posts` dans le tableau.
 
-## Validation des données
+## La page article
 
-Pour la validation des données, je me suis contenté d'ajouter une méthode `validate()` à notre classe `Request`.
+Même travail pour la page article !
 
-Vu que ce service est maintenant accessible depuis nos contrôleurs, on pourra utiliser cette méthode dès qu'on devra traiter un formulaire.
+Vous allez créer une route avec l'URI `/articles/{slug}` dont l'action récupèrera le slug (titre d'un article dans un format url-friendly) depuis ses paramètres.
 
-Je vous invite à [consulter sa logique](./src/Request.php) pour bien la comprendre.
+Grâce à ce slug, vous allez pouvoir récupérer le bon article dans votre table `posts` grâce à votre modèle `Post`.
 
-On devra donc transmettre un tableau de données à valider à la méthode `validate()` avec les règles de validation et la session dans laquelle enregistrer les données à afficher sur un formulaire mal rempli.
+Encore une fois, vous trouverez facilement comment récupérer une seule entrée dans une table par rapport à la valeur d'un champ avec la [documentation d'Eloquent](https://laravel.com/docs/10.x/eloquent#retrieving-single-models).
 
-Cette méthode nous retournera :
+Une fois que c'est fait, vérifiez que vous l'avez bien récupéré avec une condition. Dans le cas où ça n'est pas le cas, pensez à lancer une nouvelle `HttpException` pour afficher une page d'erreur 404.
 
-- Un tableau des données validées si tout s'est bien passé
-- Le booléen `false` s'il y a eu des erreurs dans le formulaire
+Dans le cas où un article a été récupéré, retournez une vue à partir du template `/post.html` (pensez à bien lui transmettre le post en 2ème argument de la méthode `view()` avec une clé `post`).
 
-Un exemple d'utilisation dans un contrôleur qui a tenu à garder l'anonymat :
+Tentez de cliquer sur un article pour voir si tout fonctionne comme prévu !
 
-```php
-$data = [
-    'name' => 'Steven Sil',
-    'email' => 'foo@bar.baz',
-]
+Il ne nous reste plus qu'à afficher les commentaires juste en dessous de l'article.
 
-$validated = $this->request->validate($data, [
-    'name' => ['required', ['lengthMin', 5]],
-    'email' => ['required', 'email'],
-], $this->session);
+Pour se faire, Eloquent dispose d'un système de gestion des relations très sympathique !
 
-// $validated === false si des données sont invalides
-// $validated === [
-//    'name' => 'Steven Sil',
-//    'email' => 'foo@bar.baz',
-// ] si les données sont correctes !
-```
+Commencez par créer un nouveau modèle pour la table `comments` puisqu'on va venir y récupérer des données.
+
+Ensuite, vous allez devoir rajouter une méthode à votre modèle `Post` qui nous permettra de récupérer facilement tous les commentaires associés à chaque article.
+
+La réponse se trouve [juste ici](https://laravel.com/docs/10.x/eloquent-relationships#one-to-many) (une bonne vieille relation One To Many).
+
+## La page d'inscription
+
+On commence à être dans la répétition mais rien de mieux pour apprendre !
+
+Pour cette page, aucune donnée à transmettre au template ! 🥵
+
+Vous avez simplement à créer une route avec l'URI `/inscription` et une action qui mènera à un contrôleur `RegisterController` et à sa méthode `showRegisterForm()` dont le rôle sera de retourner en réponse la vue obtenue à partir du template `register.html`.
+
+## La page de connexion
+
+Pour cette page, aucune donnée à transmettre au template non plus !
+
+On va simplement créer une route avec l'URI `/connexion` et une action `showLoginForm()` qui sera dans un contrôleur `LoginController`.
+
+Son rôle sera de retourner en réponse la vue obtenue à partir du template `login.html`.
+
+## La page compte
+
+La page compte sera à terme la page accessible seulement pour les utilisateurs connectés !
+
+Comme pour les autres pages, nous gérerons la partie autorisations d'accès plus tard.
+
+Créez donc un contrôleur `HomeController` avec une méthode `index()` et mettez là en action d'une route avec l'URI `/compte`.
+
+Cette action devra simplement retourner une vue générée à partir du template `home.html` (C'est une page vide, elle sera juste là pour symboliser la connexion de notre visiteur).
+
+## La page d'administration du blog
+
+La page d'administration (notre back-office) sera la page accessible seulement pour les administrateurs du site (ceux qui auront un rôle `admin` en BDD) !
+
+Créez donc un contrôleur `AdminController` avec une méthode `index()` et mettez là en action d'une route avec l'URI `/compte/admin`.
+
+Cette action devra simplement retourner une vue générée à partir du template `admin.html` (C'est un page vide, elle sera juste là pour symboliser l'accès réservé aux administrateurs).

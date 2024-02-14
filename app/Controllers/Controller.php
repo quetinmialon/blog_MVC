@@ -24,4 +24,8 @@ class Controller
             $this->twig->render($template, $data)
         );
     }
+    // protected function input(string $key) //ma version chuitrotriste T_T
+    // {
+    // return $this->request->get($key);
+    // }
 }

@@ -3,21 +3,28 @@
 namespace MVC;
 
 use App\Controllers\Controller;
+use App\Middlewares\CSRF;
 
 class Route
 {
     // On stocke les méthodes HTTP possible dans une constante
-    protected const array HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+    protected const  HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 
     // Servira à stocker les valeurs pour les paramètres variables de la route si elle matche avec la requête (Ex: Pour la route '/hello/{name}', on aura $params = ['Steven'] si l'utilisateur à indiqué /hello/Steven lors de sa requête)
     protected array $params;
+
+    // Contiendra tous les middlewares de la route
+    protected array $middlewares = [];
 
     // On utilise le constructor property promotion pour créer nos propriétés
     protected function __construct(
         public readonly string $method,
         public readonly string $uri,
         public readonly array $action,
-    ) {}
+    ) {
+        // Toutes les routes auront le middleware CSRF d'affecté
+        $this->middlewares[] = CSRF::class;
+    }
 
     // Chaque appel de méthode statique (Route::get()) atterrira ici
     public static function __callStatic(string $httpMethod, array $uriAndAction): Route
@@ -92,4 +99,32 @@ class Route
     {
         return $this->params;
     }
+
+    public function middleware(string|array $middlewares): static
+    {
+        // Si $middleware n'est pas un tableau, on en fait un tableau :D
+        if (! is_array($middlewares)) {
+            $middlewares = [$middlewares];
+        }
+
+        // On ajoute chaque middleware un à un à la propriété $middlewares
+        foreach ($middlewares as $middleware) {
+            // Si le middleware passé en argument n'est pas une classe enfant de Middleware, on lance une exception
+            if (! is_subclass_of($middleware, Middleware::class)) {
+                throw new \InvalidArgumentException('Le middleware ' . $middleware . ' n\'existe pas');
+            }
+            $this->middlewares[] = $middleware;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Getter pour récupérer les middlewares de la route
+     */
+    public function getMiddlewares(): array
+    {
+        return $this->middlewares;
+    }
 }
+
